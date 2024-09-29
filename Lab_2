@@ -1,5 +1,6 @@
 from collections import Counter
 from sympy import mod_inverse
+import math
 
 rus_alphabet = 'а б в г д е ж з и й к л м н о п р с т у ф х ц ч ш щ ъ ы ь э ю я'.split()
 alphabet_size = len(rus_alphabet)
@@ -21,61 +22,146 @@ num_to_letter = {idx: letter for idx, letter in enumerate(rus_alphabet)}
 
 m=32
 
-cipher_text = 'щгзшмпвжгщгзфвлыоцунпыщумжгфбгъгйвщйртжыпыщщгзъгъвйвпнздтпнунхбгтжфвпдъвйыпгъъдтийвувоыицмлбгщгзъгбмучытънхбгтжщныщцвинбнъцвипйвуво'
-
 def frequency_analysis(text):
     freq = Counter(text)
     total = len(text)
     return {char: count / total for char, count in freq.items()}
 
-def most_frequent(freq_dict, top_n=2, offset=0):
+def most_frequent(freq_dict, top_n=10, offset=0):
     return sorted(freq_dict, key=freq_dict.get, reverse=True)[offset:offset + top_n]
 def most_frequentL(letter_frequencies, top_n=2, offset=0):
     return sorted(letter_frequencies, key=letter_frequencies.get, reverse=True)[offset:offset + top_n]
 
-cipher_freq = frequency_analysis(cipher_text)
-
-most_common_symbols = most_frequent(cipher_freq, top_n=2, offset=14)
-alf = most_frequentL(letter_frequencies, top_n=2, offset=14)
-
-most_common_codes = [letter_to_num[symbol] for symbol in most_common_symbols]
-alf_num = [letter_to_num[symbol] for symbol in alf]
-
-print(f"Два самых частых символа: {most_common_symbols}")
-print(f"Их числовые коды: {most_common_codes}")
-print(f"Два самых частых символа в алфавите: {alf}")
-print(f"Их числовые коды: {alf_num}")
-
-def solve_b(m, x1, x2, y1, y2):
-    print(y1,x1,y2,x2)
-    for a in range(m):
-        b = (y1 - x1 * a) % m
-        if (x2 * a + b) % m == y2:
-            return a, b
-
-res1 = solve_b(m, alf_num[0], alf_num[1], most_common_codes[0], most_common_codes[1])
-res2 = solve_b(m, alf_num[1], alf_num[0], most_common_codes[0], most_common_codes[1])
-print(res1,res2)
-def decrypt(m,cipher_text, a, b, letter_to_num, num_to_letter):
+def decrypt(m, cipher_text, a, b, letter_to_num, num_to_letter):
     a_inv = mod_inverse(a, m)
     decrypted_text = ""
-
-    # Проходим по каждой букве шифротекста
     for char in cipher_text:
-        C = letter_to_num[char]  # Преобразуем букву в число
-        P = (a_inv * (C - b)) % m  # Применяем формулу расшифровки
-        decrypted_text += num_to_letter[P]  # Преобразуем число обратно в букву
-
+        C = letter_to_num[char] 
+        P = (a_inv * (C - b)) % m  
+        decrypted_text += num_to_letter[P] 
     return decrypted_text
 
-try:
-    decrypted_text1 = decrypt(m, cipher_text, res1[0], res1[1], letter_to_num, num_to_letter)
-    print(f"Расшифрованный текст с ключом (a = {res1[0]}, b = {res1[1]}):\n{decrypted_text1}\n")
-except ValueError as e:
-    print(f"Не удалось расшифровать текст с ключом (a = {res1[0]}, b = {res1[1]}). Ошибка: {e}")
+def nod(a, m):
+    return math.gcd(a, m)
 
-try:
-    decrypted_text2 = decrypt(m, cipher_text, res2[0], res2[1], letter_to_num, num_to_letter)
-    print(f"Расшифрованный текст с ключом (a = {res2[0]}, b = {res2[1]}):\n{decrypted_text2}\n")
-except ValueError as e:
-    print(f"Не удалось расшифровать текст с ключом (a = {res2[0]}, b = {res2[1]}). Ошибка: {e}")
+def gcd_extended(a, b):
+    if a == 0:
+        return b, 0, 1
+    gcd, x1, y1 = gcd_extended(b % a, a)
+    x = y1 - (b // a) * x1
+    y = x1
+    return gcd, x, y
+
+def solve_linear_congruence(a, b, m):
+    gcd, x, _ = gcd_extended(a, m)
+    if b % gcd != 0:
+        return "Нет решения"  
+
+    x0 = (x * (b // gcd)) % m
+    solutions = []
+    step = m // gcd
+    for i in range(gcd):
+        solutions.append((x0 + i * step) % m)
+
+    return solutions
+
+def solve(m, x1, x2, y1, y2):
+    d = nod(x1 - x2, m)
+    if d % (y1 - y2) != 0:
+        return "Нет решения"
+    inv = mod_inverse(x1 - x2, m)
+
+    a = ((y1 - y2) * inv) % m
+    b = (y1 - a * x1) % m
+
+    return a, b
+
+def solve2(m, x1, x2, y1, y2):
+    d = nod(x1 - x2, m)
+    
+    if d == 0:
+        if (y1 - y2) % m == 0:
+            return "Бесконечно много решений"  
+        else:
+            return "Нет решения" 
+
+    if (y1 - y2) % d != 0:
+        return "Нет решения"
+
+    inv = mod_inverse(x1 - x2, m)
+    a = ((y1 - y2) * inv) % m
+    b = (y1 - a * x1) % m
+
+    num_solutions = d
+    step = m // num_solutions
+
+    x_solutions = [(a + i * step) % m for i in range(num_solutions)]
+    y_solutions = [(y1 - a * x) % m for x in x_solutions]
+
+    return list(zip(x_solutions, y_solutions))
+
+results = []
+print(f"Выберите действие: решение сравнения(1), решение системы сравнений(2), расшифровка(3), обратный элемент(4)")
+inp=int(input())
+if inp==1:
+    print(f"Введите a,b и m")
+    a,b,m = map(int, input().split())
+    print(f"Решение для {a}x ≡ {b} (mod {m}): x = {solve_linear_congruence(a, b, m)}")
+elif inp==2:
+    print(f"Введите m, x1, x2, y1, y2")
+    m, x1, x2, y1, y2 = map(int, input().split())
+    solution = solve2(m, x1, x2, y1, y2)
+    if isinstance(solution, str):
+        print(solution)  #
+    else:
+        for x, y in solution:
+            print(f"x: {x}, y: {y}")
+elif inp==3:
+
+    cipher_text = 'щгзшмпвжгщгзфвлыоцунпыщумжгфбгъгйвщйртжыпыщщгзъгъвйвпнздтпнунхбгтжфвпдъвйыпгъъдтийвувоыицмлбгщгзъгбмучытънхбгтжщныщцвинбнъцвипйвуво'
+    cipher_freq = frequency_analysis(cipher_text)
+
+    most_common_symbols = most_frequent(cipher_freq, top_n=10, offset=0)
+    alf = most_frequent(letter_frequencies, top_n=10, offset=0)
+
+    most_common_codes = [letter_to_num[symbol] for symbol in most_common_symbols]
+    alf_num = [letter_to_num[symbol] for symbol in alf]
+
+    for i in range(len(alf_num)):
+        for j in range(len(alf_num)):
+            if i != j:
+                x1, y1 = alf_num[i], most_common_codes[0]
+                x2, y2 = alf_num[j], most_common_codes[1]
+
+                try:
+                    result = solve(m, x1, x2, y1, y2)
+                    if isinstance(result, tuple):
+                        a, b = result
+                        decrypted_text = decrypt(m, cipher_text, a, b, letter_to_num, num_to_letter)
+                        results.append((a, b, decrypted_text[:100]))
+                except ValueError:
+                    continue
+    
+    for index in range(0, len(results), 2):
+        for sub_index in range(2):
+            if index + sub_index < len(results):
+                a, b, decrypted_text = results[index + sub_index]
+                print(f"Расшифрованный текст с ключом (a = {a}, b = {b}):\n{decrypted_text}\n")
+
+        user_input = input("Нажмите Enter или пробел для продолжения, или 'f' для сохранения в файл: ").strip().lower()
+        if user_input == 'f':
+            with open("text2.txt", "w", encoding="utf-8") as file:
+                for sub_index in range(2):
+                    if index + sub_index < len(results):
+                        a, b, decrypted_text = results[index + sub_index]
+                        file.write(f"Ключ (a = {a}, b = {b}):\n{decrypted_text}\n\n")
+            print("Результаты сохранены в файл text.txt")
+elif inp == 4:
+    print(f"Введите число и модуль")
+    a,m = map(int, input().split())
+    try:
+        inverse = mod_inverse(a, m)
+        print(f"Обратный элемент к {a} по модулю {m}: {inverse}")
+    except ValueError:
+        print("Нет обратного элемента")
+    
