@@ -1,4 +1,5 @@
 import random
+import math
 
 def gcd_extended(a, b):
     if a == 0:
@@ -47,10 +48,12 @@ def decrypt(ciphertext, private_key):
     d, n = private_key
     return ''.join([chr(modular_exponentiation(char, d, n)) for char in ciphertext])
 
+# Генерация ключей для заданных p и q
 p, q = 101, 233
 keys = [generate_rsa_keys(p, q) for _ in range(3)]
 
-message = "Hello RSA"
+# Ввод сообщения от пользователя
+message = input("Введите сообщение для шифрования: ")
 
 results = []
 for i, (public_key, private_key) in enumerate(keys):
@@ -58,4 +61,11 @@ for i, (public_key, private_key) in enumerate(keys):
     decrypted_message = decrypt(encrypted_message, private_key)
     results.append((public_key, private_key, encrypted_message, decrypted_message))
 
-print(results)
+# Вывод результатов
+for i, (public_key, private_key, encrypted_message, decrypted_message) in enumerate(results):
+    print(f"Пара ключей {i+1}:")
+    print(f"Публичный ключ: {public_key}")
+    print(f"Приватный ключ: {private_key}")
+    print(f"Зашифрованное сообщение: {encrypted_message}")
+    print(f"Расшифрованное сообщение: {decrypted_message}")
+    print()
