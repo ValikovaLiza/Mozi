@@ -1,5 +1,4 @@
 import random
-import math
 
 def gcd_extended(a, b):
     if a == 0:
@@ -9,14 +8,12 @@ def gcd_extended(a, b):
     y = x1
     return gcd, x, y
 
-# Функция для вычисления мультипликативного обратного
 def mod_inverse(e, phi):
     gcd, x, _ = gcd_extended(e, phi)
     if gcd != 1:
         raise ValueError("e and phi are not coprime")
     return x % phi
 
-# Функция для генерации ключей RSA
 def generate_rsa_keys(p, q):
     n = p * q
     phi = (p - 1) * (q - 1)
@@ -29,7 +26,11 @@ def generate_rsa_keys(p, q):
     
     return (e, n), (d, n)
 
-# Бинарный алгоритм возведения в степень для шифрования/расшифрования
+def compute_private_key(e, n, p, q):
+    phi = (p - 1) * (q - 1)
+    d = mod_inverse(e, phi)
+    return (d, n)
+
 def modular_exponentiation(base, exponent, modulus):
     result = 1
     base = base % modulus
@@ -48,20 +49,35 @@ def decrypt(ciphertext, private_key):
     d, n = private_key
     return ''.join([chr(modular_exponentiation(char, d, n)) for char in ciphertext])
 
-# Генерация ключей для заданных p и q
-p, q = 101, 233
-keys = [generate_rsa_keys(p, q) for _ in range(3)]
 
-# Ввод сообщения от пользователя
+print("Выберите вариант:")
+print("1. Автоматическая генерация ключей")
+print("2. Ввод открытых ключей вручную")
+    
+choice = input("Введите номер варианта (1 или 2): ")
+    
+keys = []
+if choice == '1':
+    p, q = 197, 349
+    keys = [generate_rsa_keys(p, q) for _ in range(3)]
+elif choice == '2':
+    for i in range(3):
+        e = int(input(f"Введите e для пары ключей {i+1}: "))
+        n = int(input(f"Введите n для пары ключей {i+1}: "))
+        p = int(input(f"Введите p (для вычисления d) для пары ключей {i+1}: "))
+        q = int(input(f"Введите q (для вычисления d) для пары ключей {i+1}: "))
+        private_key = compute_private_key(e, n, p, q)
+        keys.append(((e, n), private_key))
+else:
+    print("Неверный выбор.")
+    
 message = input("Введите сообщение для шифрования: ")
-
 results = []
 for i, (public_key, private_key) in enumerate(keys):
     encrypted_message = encrypt(message, public_key)
     decrypted_message = decrypt(encrypted_message, private_key)
     results.append((public_key, private_key, encrypted_message, decrypted_message))
 
-# Вывод результатов
 for i, (public_key, private_key, encrypted_message, decrypted_message) in enumerate(results):
     print(f"Пара ключей {i+1}:")
     print(f"Публичный ключ: {public_key}")
